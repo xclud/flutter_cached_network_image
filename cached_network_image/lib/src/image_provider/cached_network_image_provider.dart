@@ -1,5 +1,5 @@
 import 'dart:async' show Future, StreamController;
-import 'dart:ui' as ui show Codec;
+import 'dart:ui' as ui show Codec, ImmutableBuffer, TargetImageSize;
 
 import 'package:cached_network_image_platform_interface/cached_network_image_platform_interface.dart'
     show ImageRenderMethodForWeb;
@@ -71,55 +71,21 @@ class CachedNetworkImageProvider
     return SynchronousFuture<CachedNetworkImageProvider>(this);
   }
 
-  @Deprecated(
-      'load is deprecated, use loadBuffer instead, see https://docs.flutter.dev/release/breaking-changes/image-provider-load-buffer')
-  @override
-  ImageStreamCompleter load(
-      image_provider.CachedNetworkImageProvider key, DecoderCallback decode) {
-    final chunkEvents = StreamController<ImageChunkEvent>();
-    return MultiImageStreamCompleter(
-      codec: _loadAsync(key, chunkEvents, decode),
-      chunkEvents: chunkEvents.stream,
-      scale: key.scale,
-      informationCollector: () sync* {
-        yield DiagnosticsProperty<ImageProvider>(
-          'Image provider: $this \n Image key: $key',
-          this,
-          style: DiagnosticsTreeStyle.errorProperty,
-        );
-      },
-    );
-  }
-
-  @Deprecated(
-      '_loadAsync is deprecated, use loadBuffer instead, see https://docs.flutter.dev/release/breaking-changes/image-provider-load-buffer')
-  Stream<ui.Codec> _loadAsync(
-    image_provider.CachedNetworkImageProvider key,
-    StreamController<ImageChunkEvent> chunkEvents,
-    DecoderCallback decode,
-  ) {
-    assert(key == this);
-    return ImageLoader().loadAsync(
-      url,
-      cacheKey,
-      chunkEvents,
-      decode,
-      cacheManager ?? DefaultCacheManager(),
-      maxHeight,
-      maxWidth,
-      headers,
-      errorListener,
-      imageRenderMethodForWeb,
-      () => PaintingBinding.instance.imageCache.evict(key),
-    );
-  }
-
+  @Deprecated('Implement loadImage for image loading.')
   @override
   ImageStreamCompleter loadBuffer(image_provider.CachedNetworkImageProvider key,
       DecoderBufferCallback decode) {
     final chunkEvents = StreamController<ImageChunkEvent>();
+
+    Future<ui.Codec> _decode(
+      ui.ImmutableBuffer buffer, {
+      ui.TargetImageSize Function(int, int)? getTargetSize,
+    }) async {
+      return decode(buffer);
+    }
+
     return MultiImageStreamCompleter(
-      codec: _loadBufferAsync(key, chunkEvents, decode),
+      codec: _loadBufferAsync(key, chunkEvents, _decode),
       chunkEvents: chunkEvents.stream,
       scale: key.scale,
       informationCollector: () sync* {
@@ -135,7 +101,46 @@ class CachedNetworkImageProvider
   Stream<ui.Codec> _loadBufferAsync(
     image_provider.CachedNetworkImageProvider key,
     StreamController<ImageChunkEvent> chunkEvents,
-    DecoderBufferCallback decode,
+    ImageDecoderCallback decode,
+  ) {
+    assert(key == this);
+    return ImageLoader().loadBufferAsync(
+      url,
+      cacheKey,
+      chunkEvents,
+      decode,
+      cacheManager ?? DefaultCacheManager(),
+      maxHeight,
+      maxWidth,
+      headers,
+      errorListener,
+      imageRenderMethodForWeb,
+      () => PaintingBinding.instance.imageCache.evict(key),
+    );
+  }
+
+  @override
+  ImageStreamCompleter loadImage(image_provider.CachedNetworkImageProvider key,
+      ImageDecoderCallback decode) {
+    final chunkEvents = StreamController<ImageChunkEvent>();
+    return MultiImageStreamCompleter(
+      codec: _loadImage(key, chunkEvents, decode),
+      chunkEvents: chunkEvents.stream,
+      scale: key.scale,
+      informationCollector: () sync* {
+        yield DiagnosticsProperty<ImageProvider>(
+          'Image provider: $this \n Image key: $key',
+          this,
+          style: DiagnosticsTreeStyle.errorProperty,
+        );
+      },
+    );
+  }
+
+  Stream<ui.Codec> _loadImage(
+    image_provider.CachedNetworkImageProvider key,
+    StreamController<ImageChunkEvent> chunkEvents,
+    ImageDecoderCallback decode,
   ) {
     assert(key == this);
     return ImageLoader().loadBufferAsync(

@@ -22,7 +22,7 @@ class ImageLoader implements platform.ImageLoader {
     String url,
     String? cacheKey,
     StreamController<ImageChunkEvent> chunkEvents,
-    DecoderCallback decode,
+    Future<ui.Codec> Function(Uint8List) decode,
     BaseCacheManager cacheManager,
     int? maxHeight,
     int? maxWidth,
@@ -51,7 +51,7 @@ class ImageLoader implements platform.ImageLoader {
     String url,
     String? cacheKey,
     StreamController<ImageChunkEvent> chunkEvents,
-    DecoderBufferCallback decode,
+    ImageDecoderCallback decode,
     BaseCacheManager cacheManager,
     int? maxHeight,
     int? maxWidth,
@@ -64,7 +64,7 @@ class ImageLoader implements platform.ImageLoader {
       url,
       cacheKey,
       chunkEvents,
-      (bytes) async {
+      (Uint8List bytes) async {
         final buffer = await ImmutableBuffer.fromUint8List(bytes);
         return decode(buffer);
       },
@@ -82,7 +82,7 @@ class ImageLoader implements platform.ImageLoader {
     String url,
     String? cacheKey,
     StreamController<ImageChunkEvent> chunkEvents,
-    _FileDecoderCallback decode,
+    Future<ui.Codec> Function(Uint8List) decode,
     BaseCacheManager cacheManager,
     int? maxHeight,
     int? maxWidth,
@@ -114,7 +114,7 @@ class ImageLoader implements platform.ImageLoader {
     String url,
     String? cacheKey,
     StreamController<ImageChunkEvent> chunkEvents,
-    _FileDecoderCallback decode,
+    Future<ui.Codec> Function(Uint8List) decode,
     BaseCacheManager cacheManager,
     int? maxHeight,
     int? maxWidth,
@@ -173,5 +173,3 @@ class ImageLoader implements platform.ImageLoader {
     ) as Future<ui.Codec>;
   }
 }
-
-typedef _FileDecoderCallback = Future<ui.Codec> Function(Uint8List);
